@@ -1,6 +1,50 @@
-name: infrastructier (Tofu)
-run-name:${{github.workflow}}-${{github.ref}}
+name: IaC Workflow (Tofu)
+run-name: tofu || ${{inputs.actions}}-${{github.ref}}
+on:
+    workflow_dispatch:
+        inputs:
+            actions:
+                description: 'Action to run'
+                required: true
+                default: 'apply'
+                type: choice
+                options:
+                    - apply
+                    - plan
+                    - destroy
+            env:
+                description: 'Deployment environment'
+                required: true
+                default: 'dev'
+                type: choice
+                options:
+                    - dev
+                    - prod
 jobs:
-    steps:
-        - uses: actions/checkout@v4
-        
+    tofu-action:
+        environment: ${{ inputs.env }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: Clone GitHub Repo
+              uses: actions/checkout@v4
+              with:
+                repository: ${{ github.repository }}
+                token: ${{ secrets.GITHUB_TOKEN }}
+            - name: Configure AWS Credentials for Europe region audience
+              uses: aws-actions/configure-aws-credentials@v6.1.0
+              with:
+                access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: ${{ vars.REGION }}
+            - name: Tofu Initialization
+              run: tofu init
+            - name: Tofu Apply
+              if: ${{ inputs.actions == 'apply' }}
+              run: tofu apply -auto-approve
+            - name: Tofu Plan
+              if: ${{ inputs.actions == 'plan' }}
+              run: tofu plan
+            - name: Tofu Destroy
+              if: ${{ inputs.actions == 'destroy' }}
+              run: tofu destroy -auto-approve
+
