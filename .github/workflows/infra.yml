@@ -1,0 +1,6 @@
+name: infrastructier (Tofu)
+run-name:${{github.workflow}}-${{github.ref}}
+jobs:
+    steps:
+        - uses: actions/checkout@v4
+        
